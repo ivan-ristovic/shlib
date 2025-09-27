@@ -63,8 +63,8 @@ function std::_beep_v ()
 
 function std::beep ()
 {
-    freq="${1:-1000}"
-    duration="${2:-.2}"
+    freq="${1:-1500}"
+    duration="${2:-.1}"
     std::_beep_v $freq $duration > /dev/null 2>&1
 }
 
