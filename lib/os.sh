@@ -1,58 +1,140 @@
 #!/bin/bash
 
-function os::path::abs ()
+# Print a normalized absolute path.
+# Inputs:
+#   $1 - Path to resolve with realpath.
+#
+# Output:
+#   Writes the normalized absolute path to stdout.
+#
+# Returns:
+#   0 on success; non-zero from realpath on failure.
+#
+# Example:
+#   root=$(os_path_abs .)
+function os_path_abs ()
 {
-    os::path "$(realpath "$1")"
+    os_path "$(realpath "$1")"
 }
 
-function os::path::file ()
+# Print the final path component.
+# Inputs:
+#   $1 - Path.
+#
+# Output:
+#   Writes the basename to stdout.
+#
+# Returns:
+#   0 unless basename fails.
+#
+# Example:
+#   file=$(os_path_file /tmp/archive.tar.gz)
+function os_path_file ()
 {
     basename "$1"
 }
 
-function os::path::file_noext ()
+# Print the final path component without its last extension.
+# Inputs:
+#   $1 - Path.
+#
+# Output:
+#   Writes the basename with the last extension removed.
+#
+# Returns:
+#   0 unless basename fails.
+#
+# Example:
+#   stem=$(os_path_file_noext /tmp/archive.tar.gz)
+function os_path_file_noext ()
 {
     basename -- "$1" ".${1##*.}"
 }
 
-function os::path::ext ()
+# Print the last file extension.
+# Inputs:
+#   $1 - Path.
+#
+# Output:
+#   Writes text after the last dot in the basename.
+#
+# Returns:
+#   0 unless basename fails.
+#
+# Example:
+#   ext=$(os_path_ext /tmp/archive.tar.gz)
+function os_path_ext ()
 {
-    filename=$(os::path::file "$1")
+    local filename
+    filename=$(os_path_file "$1")
     echo "${filename##*.}"
 }
 
-function os::path::ext_full ()
+# Print the full extension after the first dot.
+# Inputs:
+#   $1 - Path.
+#
+# Output:
+#   Writes text after the first dot in the basename.
+#
+# Returns:
+#   0 unless basename fails.
+#
+# Example:
+#   ext=$(os_path_ext_full /tmp/archive.tar.gz)
+function os_path_ext_full ()
 {
-    filename=$(os::path::file "$1")
+    local filename
+    filename=$(os_path_file "$1")
     echo "${filename#*.}"
 }
 
-function os::path::par ()
+# Print the normalized parent directory.
+# Inputs:
+#   $1 - Path.
+#
+# Output:
+#   Writes the normalized parent path to stdout.
+#
+# Returns:
+#   0 unless dirname fails.
+#
+# Example:
+#   parent=$(os_path_par /tmp//logs/app.log)
+function os_path_par ()
 {
-    os::path "$(dirname "$1")"
+    os_path "$(dirname "$1")"
 }
 
-function os::path ()
+# Normalize repeated slashes in a path.
+# Inputs:
+#   $1 - Path string.
+#
+# Output:
+#   Writes a path with repeated slash components collapsed.
+#
+# Returns:
+#   0 unless printf fails.
+#
+# Example:
+#   clean=$(os_path /tmp///logs/app.log)
+function os_path ()
 {
-    local path=$1
+    local path=$1 dir
 
-    # if path has no slashes, set dir to .
-    [[ $path =~ ^[^/]+$ ]] && dir=. || {
-        # if path has only slashes, set dir to /
-        [[ $path =~ ^/+$ ]]  && dir=/ || {              
-            local IFS=/ dir_a i
-            # read the components of path into an array
-            read -ra dir_a <<< "$path"
-            dir="${dir_a[0]}"
-            # strip out any repeating slashes
-            for ((i=1; i < ${#dir_a[@]}; i++)); do
-                # append unless it is an empty element
-                [[ ${dir_a[i]} ]] && dir="$dir/${dir_a[i]}"
-            done
-        }
-    }
+    if [[ $path =~ ^[^/]+$ ]]; then
+        dir=.
+    elif [[ $path =~ ^/+$ ]]; then
+        dir=/
+    else
+        local IFS=/ i
+        local -a dir_a
+        read -ra dir_a <<< "$path"
+        dir="${dir_a[0]}"
+        for ((i=1; i < ${#dir_a[@]}; i++)); do
+            [[ ${dir_a[i]} ]] && dir="$dir/${dir_a[i]}"
+        done
+    fi
 
-    # print only if not empty
     [[ $dir ]] && printf '%s\n' "$dir"
 }
-

@@ -1,74 +1,99 @@
 #!/bin/bash
 
-function arr::print () 
+# Print each element from a named Bash array.
+# Inputs:
+#   $1 - Name of an indexed or associative array variable.
+#
+# Output:
+#   Writes one array element per line to stdout.
+#
+# Returns:
+#   0 unless printf fails or the variable name is invalid.
+#
+# Example:
+#   colors=(red green); arr_print colors
+function arr_print ()
 {
-    eval "printf '%s\n' \"\${$1[@]}\""
+    local -n _arr_print_ref="$1"
+    printf '%s\n' "${_arr_print_ref[@]}"
 }
 
-function arr::append ()
+# Append values to a named Bash array.
+# Inputs:
+#   $1 - Name of an indexed array variable.
+#   $@ - Values to append after the array name.
+#
+# Output:
+#   None; mutates the named array in the caller scope.
+#
+# Returns:
+#   0 unless the variable name is invalid.
+#
+# Example:
+#   colors=(red); arr_append colors green blue
+function arr_append ()
 {
-    local array=$1; shift 1
-    local len
+    local -n _arr_append_ref="$1"
+    shift
+    _arr_append_ref+=("$@")
+}
 
-    eval "$(arr::__size len "$array")"
+# Print the number of elements in a named Bash array.
+# Inputs:
+#   $1 - Name of an indexed or associative array variable.
+#
+# Output:
+#   Writes the element count to stdout.
+#
+# Returns:
+#   0 unless printf fails or the variable name is invalid.
+#
+# Example:
+#   count=$(arr_size colors)
+function arr_size ()
+{
+    local -n _arr_size_ref="$1"
+    printf '%s\n' "${#_arr_size_ref[@]}"
+}
 
-    if (( len == 0 )); then
-        eval "$(arr::__append_first "$array" "$1")"
-        shift 1
-    fi
-
+# Print arguments in reverse order.
+# Inputs:
+#   $@ - Values to reverse.
+#
+# Output:
+#   Writes one value per line in reverse argument order.
+#
+# Returns:
+#   0 unless printf fails.
+#
+# Example:
+#   arr_reverse one two three
+function arr_reverse ()
+{
+    local -a arr=("$@")
     local i
-    for i in "$@"; do
-        eval "$(arr::__append "$array" "$i")"
+    for ((i=${#arr[@]} - 1; i >= 0; i--)); do
+        printf '%s\n' "${arr[i]}"
     done
 }
 
-function arr::size ()
-{
-    local size
-    eval "$(arr::__size size "$1")"
-    echo "$size"
-}
-
-function arr::__size () 
-{
-    echo -n 'eval local '
-    echo -n "$1" # variable name
-    echo -n '=${#'
-    echo -n "$2" # array name
-    echo -n '[@]}'
-}
-
-function arr::__append () 
-{
-    echo -n 'eval '
-    echo -n "$1" # array name
-    echo -n '=( "${'
-    echo -n "$1"
-    echo -n '[@]}" "'
-    echo -n "$2" # item to append
-    echo -n '" )'
-}
-
-function arr::__append_first () 
-{
-    echo -n 'eval '
-    echo -n "$1" # array name
-    echo -n '=( '
-    echo -n "$2" # item to append
-    echo -n ' )'
-}
-
-function arr::reverse ()
-{
-    shopt -s extdebug
-    f()(printf '%s\n' "${BASH_ARGV[@]}"); f "$@"
-    shopt -u extdebug
-}
-
-function arr::uniq ()
+# Print unique non-empty arguments.
+# Inputs:
+#   $@ - Values to de-duplicate.
+#
+# Output:
+#   Writes one unique non-empty value per line. Output order follows Bash
+#   associative-array iteration order.
+#
+# Returns:
+#   0 unless printf fails.
+#
+# Example:
+#   arr_uniq alpha beta alpha ""
+function arr_uniq ()
 {
     declare -A tmp_array
+    local i
 
     for i in "$@"; do
         [[ $i ]] && IFS=" " tmp_array["${i:- }"]=1
@@ -77,9 +102,20 @@ function arr::uniq ()
     printf '%s\n' "${!tmp_array[@]}"
 }
 
-function arr::rand_elem ()
+# Print one random argument.
+# Inputs:
+#   $@ - Candidate values; pass at least one value.
+#
+# Output:
+#   Writes one selected value to stdout.
+#
+# Returns:
+#   0 unless no candidates are passed or printf fails.
+#
+# Example:
+#   mirror=$(arr_rand_elem mirror1 mirror2 mirror3)
+function arr_rand_elem ()
 {
     local arr=("$@")
     printf '%s\n' "${arr[RANDOM % $#]}"
 }
-

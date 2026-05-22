@@ -2,61 +2,81 @@
 
 source "$SHLIB_ROOT/assert.sh"
 
-function io::is_dir ()
+# Test that every path is a directory.
+# Inputs:
+#   $@ - Paths to test.
+#
+# Output:
+#   None.
+#
+# Returns:
+#   0 when all paths are directories; 1 otherwise.
+#
+# Example:
+#   io_is_dir "$HOME" /tmp
+function io_is_dir ()
 {
-    test::all -d "$@"
+    test_all -d "$@"
 }
 
-function io::is_dev ()
+# Test that every path is a block device.
+# Inputs:
+#   $@ - Paths to test.
+#
+# Output:
+#   None.
+#
+# Returns:
+#   0 when all paths are block devices; 1 otherwise.
+#
+# Example:
+#   io_is_dev /dev/sda
+function io_is_dev ()
 {
-    test::all -b "$@"
+    test_all -b "$@"
 }
 
-function io::is_file ()
+# Test that every path is a regular file.
+# Inputs:
+#   $@ - Paths to test.
+#
+# Output:
+#   None.
+#
+# Returns:
+#   0 when all paths are regular files; 1 otherwise.
+#
+# Example:
+#   io_is_file README.md LICENSE
+function io_is_file ()
 {
-    test::all -f "$@"
+    test_all -f "$@"
 }
 
-function io::readline() 
+# Read one delimited record into a variable.
+# Inputs:
+#   --delim CHAR - Optional delimiter; defaults to newline.
+#   --fd FD - Optional file descriptor; defaults to 0.
+#   VAR - Name of the output variable.
+#
+# Output:
+#   None; assigns the next record to VAR, including a final unterminated
+#   record at EOF.
+#
+# Returns:
+#   0 when a record is read; 1 at EOF with no buffered data.
+#
+# Example:
+#   while io_readline line; do printf '[%s]\n' "$line"; done < input.txt
+function io_readline()
 {
-    # Reads symbols from stdin or a file descriptor, until it faced a delimiter
-    # or the EOF. The delimiter can be defined. It also doesn't matter if
-    # a string ends with a specified  delimiter (by default it's '\n') or not.
-    # That's why it's much safer to be used in a while loop to read a stream
-    # which may not have a defined delimiter at the end of the last string.
-    #
-    # usage:
-    #    str_readline [--delim char] [--fd num] [--] var
-    #
-    # parameters:
-    #    --delim    A delimiter of a string (default is '\n')
-    #    --fd       A file descriptor to read from (default is 0)
-    #    var        A variable for storing a result
-    #
-    # examples:
-    #   # the result should contain all 3 strings and first 2 start with spaces
-    #   printf '  Hi!\n    How are you?\nBye' | \
-    #       while str_readline str; do echo "${str}"; done
-    #
-    #   # reads strings which end with \0 symbol instead of \n
-    #   cat /proc/self/environ | \
-    #       while str_readline --delim '' str; do echo "[${str}]"; done
-    #
-    #   # reads from a file descriptor
-    #   { mkfifo /tmp/my.pipe;
-    #     exec {mypipe}<>/tmp/my.pipe;
-    #     cat /etc/passwd > /tmp/my.pipe;
-    #     while str_readline --fd ${mypipe} str; do echo "${str}"; done;
-    #     exec {mypipe}<&-;
-    #     rm -f /tmp/my.pipe; }
-
     declare -n _var
     declare _arg=""
     declare -i _fd="0"
     declare _delim=$'\n'
 
     # parse param string
-    while [[ "$@" ]]; do
+    while (($# > 0)); do
         case "$1" in
             --)
                 shift
@@ -84,37 +104,34 @@ function io::readline()
         esac
     done
 
-    if ! IFS= read -d "${_delim}" -u ${_fd} -r _var; then
+    if ! IFS= read -d "${_delim}" -u "$_fd" -r _var; then
         [[ "${_var}" ]]
     fi
 }
 
-function io::readlines () 
+# Read all delimited records into an array.
+# Inputs:
+#   --delim CHAR - Optional delimiter; defaults to newline.
+#   --fd FD - Optional file descriptor; defaults to 0.
+#   ARRAY - Name of the output array.
+#
+# Output:
+#   None; appends records to ARRAY, including a final unterminated record.
+#
+# Returns:
+#   0 unless reading from the chosen file descriptor fails.
+#
+# Example:
+#   io_readlines lines < input.txt
+function io_readlines ()
 {
-    # Reads strings from the stdin until it faced the EOF and save
-    # them in an array. It also behaves correctly if there is no a delimiter
-    # at the end of the last string.
-    #
-    # usage:
-    #    str_readlines [--delim char] [--fd num] [--] arr
-    #
-    # parameters:
-    #    --delim    A delimiter of a string (default is $'\n')
-    #    --fd       A file descriptor to read from (default is 0)
-    #    arr        An array variable for storing the result
-    #
-    # examples:
-    #   # reads strings which end with '\0' symbol instead of '\n'
-    #   str_readlines --delim $'\0' myenv < /proc/self/environ && \
-    #       echo "${myenv[0]}"
-
     declare -n _arr
     declare _str="" _arg=""
     declare -i _fd="0"
     declare _delim=$'\n'
 
     # parse param string
-    while [[ "$*" ]]; do
+    while (($# > 0)); do
         case "$1" in
             --)
                 shift
@@ -142,8 +159,7 @@ function io::readlines ()
         esac
     done
 
-    while io::readline --delim "${_delim}" --fd ${_fd} _str; do
+    while io_readline --delim "${_delim}" --fd "$_fd" _str; do
         _arr+=("${_str}")
     done
 }
-
