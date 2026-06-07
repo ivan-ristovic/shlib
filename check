@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -u
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$repo_root" || exit 1
+
+status=0
+shell_files=()
+
+while IFS= read -r -d '' file; do
+    case "$file" in
+        ./.git/*)
+            continue
+            ;;
+        *.sh|*.bash)
+            shell_files+=("$file")
+            continue
+            ;;
+    esac
+
+    if IFS= read -r first_line < "$file"; then
+        case "$first_line" in
+            '#!'*'/sh'|'#!'*'/sh '*|'#!'*'/bash'|'#!'*'/bash '*|'#!'*'env sh'|'#!'*'env sh '*|'#!'*'env bash'|'#!'*'env bash '*)
+                shell_files+=("$file")
+                ;;
+        esac
+    fi
+done < <(find . -type f -print0)
+
+if ((${#shell_files[@]} == 0)); then
+    printf 'no shell files found\n' >&2
+    exit 1
+fi
+
+printf '== bash syntax ==\n'
+for file in "${shell_files[@]}"; do
+    if ! bash -n "$file"; then
+        status=1
+    fi
+done
+
+printf '== tests ==\n'
+if ! bash tests/run.sh; then
+    status=1
+fi
+
+printf '== shellcheck ==\n'
+if command -v shellcheck >/dev/null 2>&1; then
+    if ! shellcheck -x -P "$repo_root/lib" -P "$repo_root/tests" "${shell_files[@]}"; then
+        status=1
+    fi
+elif [[ "${SHLIB_REQUIRE_SHELLCHECK:-}" == "1" ]]; then
+    printf 'shellcheck is required but was not found\n' >&2
+    status=1
+else
+    printf 'shellcheck not found; skipping lint\n'
+fi
+
+exit "$status"

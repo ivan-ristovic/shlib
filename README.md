@@ -21,6 +21,24 @@ source "$SHLIB_ROOT/lib.sh"  # all modules
 
 Some modules source dependencies through `SHLIB_ROOT`, so set it before loading modules directly.
 
+## Installation
+
+Install by symlinking this repository's `lib` directory into a user or system prefix:
+
+```bash
+./install --user    # ~/.local/lib/shlib
+./install --system  # /usr/local/lib/shlib
+```
+
+Then set `SHLIB_ROOT` to the installed symlink:
+
+```bash
+export SHLIB_ROOT="$HOME/.local/lib/shlib"
+source "$SHLIB_ROOT/lib.sh"
+```
+
+Use `--prefix DIR` to install under a custom prefix, `--force` to replace an existing file or symlink, and `--dry-run` to preview the changes.
+
 ## Testing
 
 Run the test suite from the repository root:
@@ -32,10 +50,22 @@ bash tests/run.sh
 Run all local quality checks:
 
 ```bash
-scripts/check.sh
+./check
 ```
 
-`scripts/check.sh` runs Bash syntax checks, the test suite, and `shellcheck -x` when ShellCheck is installed. Set `SHLIB_REQUIRE_SHELLCHECK=1` to fail when ShellCheck is missing.
+`./check` runs Bash syntax checks, the test suite, and `shellcheck -x` when ShellCheck is installed. Set `SHLIB_REQUIRE_SHELLCHECK=1` to fail when ShellCheck is missing.
+
+## Migration
+
+Rename old double-colon calls by replacing each separator with an underscore:
+
+| Old name | New name |
+| --- | --- |
+| `str::len` | `str_len` |
+| `os::path::ext` | `os_path_ext` |
+| `ansi::cur::pos::save` | `ansi_cur_pos_save` |
+
+The old names are no longer defined by the library.
 
 ## Examples
 

@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+set -u
+
+usage() {
+    cat <<'EOF'
+Usage: install [--user|--system] [--prefix DIR] [--force] [--dry-run]
+
+Symlink this repository's lib directory into an installation prefix.
+
+Options:
+  --user        Install under $HOME/.local/lib/shlib. This is the default.
+  --system      Install under /usr/local/lib/shlib.
+  --prefix DIR  Override the selected installation prefix.
+  --force       Replace an existing file or symlink at the target path.
+  --dry-run     Print the planned actions without changing the filesystem.
+  -h, --help    Show this help text.
+EOF
+}
+
+die() {
+    printf 'install: %s\n' "$*" >&2
+    exit 1
+}
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source_dir="$repo_root/lib"
+
+scope=user
+prefix=
+force=0
+dry_run=0
+
+while (($# > 0)); do
+    case "$1" in
+        --user)
+            scope=user
+            ;;
+        --system)
+            scope=system
+            ;;
+        --prefix)
+            shift
+            (($# > 0)) || die '--prefix requires a directory'
+            prefix="$1"
+            ;;
+        --prefix=*)
+            prefix="${1#--prefix=}"
+            [[ -n "$prefix" ]] || die '--prefix requires a directory'
+            ;;
+        --force)
+            force=1
+            ;;
+        --dry-run)
+            dry_run=1
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            die "unknown option: $1"
+            ;;
+    esac
+    shift
+done
+
+[[ -d "$source_dir" ]] || die "source lib directory not found: $source_dir"
+
+if [[ -z "$prefix" ]]; then
+    case "$scope" in
+        user)
+            [[ -n "${HOME:-}" ]] || die 'HOME is required for --user installs'
+            prefix="$HOME/.local"
+            ;;
+        system)
+            prefix=/usr/local
+            ;;
+    esac
+fi
+
+case "$prefix" in
+    /*)
+        ;;
+    *)
+        die "prefix must be absolute: $prefix"
+        ;;
+esac
+
+target="$prefix/lib/shlib"
+target_parent="${target%/*}"
+
+if [[ -e "$target" || -L "$target" ]]; then
+    if [[ -L "$target" ]]; then
+        existing_target="$(readlink "$target")" || die "cannot inspect existing symlink: $target"
+        if [[ "$existing_target" == "$source_dir" ]]; then
+            printf 'already installed: %s -> %s\n' "$target" "$source_dir"
+            printf 'Set SHLIB_ROOT with: export SHLIB_ROOT=%q\n' "$target"
+            exit 0
+        fi
+    fi
+
+    if (( force == 0 )); then
+        die "target already exists: $target (use --force to replace files or symlinks)"
+    fi
+
+    if [[ -d "$target" && ! -L "$target" ]]; then
+        die "refusing to replace existing directory: $target"
+    fi
+fi
+
+if (( dry_run )); then
+    printf 'would create directory: %s\n' "$target_parent"
+    if [[ -e "$target" || -L "$target" ]]; then
+        printf 'would remove: %s\n' "$target"
+    fi
+    printf 'would symlink: %s -> %s\n' "$target" "$source_dir"
+    printf 'Set SHLIB_ROOT with: export SHLIB_ROOT=%q\n' "$target"
+    exit 0
+fi
+
+mkdir -p -- "$target_parent" || die "cannot create directory: $target_parent"
+
+if [[ -e "$target" || -L "$target" ]]; then
+    rm -f -- "$target" || die "cannot remove existing target: $target"
+fi
+
+ln -s -- "$source_dir" "$target" || die "cannot create symlink: $target"
+
+printf 'installed: %s -> %s\n' "$target" "$source_dir"
+printf 'Set SHLIB_ROOT with: export SHLIB_ROOT=%q\n' "$target"
