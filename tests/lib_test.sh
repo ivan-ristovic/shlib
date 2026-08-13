@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2317
 set -u
 
 source "$(dirname "${BASH_SOURCE[0]}")/helper.bash"

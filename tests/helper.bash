@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2317
 
 SHLIB_TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHLIB_REPO_ROOT="$(cd "$SHLIB_TEST_DIR/.." && pwd)"
