@@ -338,6 +338,7 @@ When no value is passed, many math helpers prompt for input. This is useful for 
 | `os_path_ext PATH` | Print the last file extension. |
 | `os_path_ext_full PATH` | Print everything after the first dot in the file name. |
 | `os_path_par PATH` | Print the normalized parent directory. |
+| `os_path_rel PATH BASE` | Print `PATH` relative to `BASE`; fails when `PATH` is outside `BASE`. |
 | `os_path PATH` | Normalize repeated slashes in a path. |
 
 ### `output.sh`

@@ -106,6 +106,29 @@ function os_path_par ()
     os_path "$(dirname "$1")"
 }
 
+# Print a path relative to a base directory.
+# Inputs:
+#   $1 - Path to express relative to the base.
+#   $2 - Base directory the result is relative to.
+#
+# Output:
+#   Writes the relative path to stdout.
+#
+# Returns:
+#   0 on success; non-zero when realpath fails or $1 is outside $2.
+#
+# Example:
+#   rel=$(os_path_rel /tmp/in/sub/a.jpg /tmp/in)
+function os_path_rel ()
+{
+    local rel
+    rel=$(realpath --relative-to="$2" "$1") || return
+    case $rel in
+        .. | ../*) return 1 ;;
+    esac
+    printf '%s\n' "$rel"
+}
+
 # Normalize repeated slashes in a path.
 # Inputs:
 #   $1 - Path string.

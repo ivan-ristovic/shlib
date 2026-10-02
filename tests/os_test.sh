@@ -25,8 +25,22 @@ test_os_path_abs() {
     assert_command_output "$expected" os_path_abs "README.md"
 }
 
+test_os_path_rel() {
+    local tmpdir
+    tmpdir="$(mktemp -d)"
+    trap 'rm -rf "$tmpdir"' RETURN
+    mkdir -p "$tmpdir/in/sub"
+    printf 'data' > "$tmpdir/in/sub/a b.jpg"
+    printf 'data' > "$tmpdir/outside.jpg"
+
+    assert_command_output "." os_path_rel "$tmpdir/in" "$tmpdir/in"
+    assert_command_output "sub/a b.jpg" os_path_rel "$tmpdir/in/sub/a b.jpg" "$tmpdir/in"
+    assert_failure os_path_rel "$tmpdir/outside.jpg" "$tmpdir/in"
+}
+
 run_test "path normalization" test_os_path_normalization
 run_test "path components" test_os_path_components
 run_test "absolute path" test_os_path_abs
+run_test "relative path" test_os_path_rel
 
 finish_tests
