@@ -148,3 +148,32 @@ function fs_rm_empty_dir ()
 {
     rmdir -- "$1"
 }
+
+# Print a path that does not currently exist.
+# Inputs:
+#   $1 - Desired path.
+#
+# Output:
+#   Writes the available path to stdout.
+#
+# Returns:
+#   0 when an available path is found; 1 when no path is provided.
+#
+# Example:
+#   output=$(fs_unique_path report.txt)
+function fs_unique_path ()
+{
+    local path="$1"
+    local candidate
+    local n=1
+
+    [[ -n "$path" ]] || return 1
+
+    candidate="$path"
+    while [[ -e "$candidate" || -L "$candidate" ]]; do
+        candidate="${path}.${n}"
+        ((n++))
+    done
+
+    printf '%s\n' "$candidate"
+}
